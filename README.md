@@ -4,28 +4,16 @@ CLI and JS API for Agnes text, image, and video workflows.
 
 ## Install
 
-Current verified distribution path:
-
-```bash
-npm install -g github:jomeswang/agnes-ai-cli
-```
-
-Ad hoc execution without a global install:
-
-```bash
-npx -y github:jomeswang/agnes-ai-cli --help
-```
-
-Planned npm package name:
-
-```bash
-agnes-ai-cli
-```
-
-Once the npm publish path is cleared, the package will also be installable as:
+Install globally:
 
 ```bash
 npm install -g agnes-ai-cli
+```
+
+Run without installing:
+
+```bash
+npx -y agnes-ai-cli --help
 ```
 
 ## CLI
