@@ -1,0 +1,45 @@
+import type { AgnesClientConfig } from "./config.js";
+import { checkAuth } from "./auth/check.js";
+import { toPublicUrl } from "./media/toPublicUrl.js";
+import { generateImage } from "./image/generateImage.js";
+import { completeText } from "./text/complete.js";
+import { generateVideo } from "./video/generateVideo.js";
+import { pollVideo } from "./video/pollVideo.js";
+
+export { checkAuth } from "./auth/check.js";
+export { toPublicUrl } from "./media/toPublicUrl.js";
+export { LitterboxMediaUrlProvider } from "./media/litterbox.js";
+export type {
+  AgnesClientConfig,
+  AuthCheckResult,
+  PublicUrlResult,
+  ImageGenerationResult,
+  NormalizedVideoTask,
+  NormalizedVideoResult,
+  Ttl,
+} from "./config.js";
+export type { ImageGenerateOptions } from "./image/normalizeImageRequest.js";
+export type { TextCompleteOptions, TextCompletionResult } from "./text/complete.js";
+export type { VideoGenerateOptions } from "./video/normalizeVideoRequest.js";
+export type { PollVideoOptions } from "./video/pollVideo.js";
+
+export function createAgnesClient(config: AgnesClientConfig = {}) {
+  return {
+    auth: {
+      check: () => checkAuth({ env: config.env }),
+    },
+    media: {
+      toPublicUrl: (input: string, options?: { ttl?: import("./config.js").Ttl }) => toPublicUrl(input, options, config),
+    },
+    text: {
+      complete: (options: import("./text/complete.js").TextCompleteOptions) => completeText(options, config),
+    },
+    image: {
+      generate: (options: import("./image/normalizeImageRequest.js").ImageGenerateOptions) => generateImage(options, config),
+    },
+    video: {
+      generate: (options: import("./video/normalizeVideoRequest.js").VideoGenerateOptions) => generateVideo(options, config),
+      poll: (taskId: string, options?: import("./video/pollVideo.js").PollVideoOptions) => pollVideo(taskId, options, config),
+    },
+  };
+}

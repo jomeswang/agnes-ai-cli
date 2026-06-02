@@ -1,0 +1,47 @@
+{
+  "name": "agnes-ai-cli",
+  "version": "0.1.0",
+  "description": "CLI and Node client for Agnes AI text, image, and video workflows",
+  "type": "module",
+  "bin": {
+    "agnes": "./bin/agnes.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test test/**/*.test.mjs"
+  },
+  "keywords": [
+    "agnes-ai",
+    "cli",
+    "multimodal",
+    "image-generation",
+    "video-generation"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^15.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}
