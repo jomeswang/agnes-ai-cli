@@ -4,7 +4,7 @@
   "description": "CLI and JS API for Agnes text, image, and video workflows.",
   "type": "module",
   "bin": {
-    "agnes": "./bin/agnes.js"
+    "agnes": "bin/agnes.js"
   },
   "exports": {
     ".": {
