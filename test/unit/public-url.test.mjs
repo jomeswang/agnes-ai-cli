@@ -71,3 +71,100 @@ test("toPublicUrl still passes public http URLs through", async () => {
     source: "passthrough",
   });
 });
+
+test("toPublicUrl tries x0.at first for temporary uploads", async () => {
+  const requestedUrls = [];
+
+  const result = await toPublicUrl("data:image/png;base64,aGVsbG8=", { ttl: "1h" }, {
+    fetchImpl: async (url) => {
+      const requestedUrl = String(url);
+      requestedUrls.push(requestedUrl);
+
+      if (requestedUrl === "https://x0.at/") {
+        return new Response("https://x0.at/fast.png\n", { status: 200 });
+      }
+
+      throw new Error(`unexpected upload URL: ${requestedUrl}`);
+    },
+  });
+
+  assert.deepEqual(requestedUrls, ["https://x0.at/"]);
+  assert.deepEqual(result, {
+    ok: true,
+    url: "https://x0.at/fast.png",
+    source: "temporary",
+  });
+});
+
+test("toPublicUrl falls back to tmpfiles direct links when x0.at fails", async () => {
+  const requestedUrls = [];
+
+  const result = await toPublicUrl("data:image/png;base64,aGVsbG8=", { ttl: "1h" }, {
+    fetchImpl: async (url) => {
+      const requestedUrl = String(url);
+      requestedUrls.push(requestedUrl);
+
+      if (requestedUrl === "https://x0.at/") {
+        throw new TypeError("fetch failed");
+      }
+
+      if (requestedUrl === "https://tmpfiles.org/api/v1/upload") {
+        return new Response(JSON.stringify({
+          status: "success",
+          data: { url: "https://tmpfiles.org/abc123/fallback.png" },
+        }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+
+      throw new Error(`unexpected upload URL: ${requestedUrl}`);
+    },
+  });
+
+  assert.deepEqual(requestedUrls, ["https://x0.at/", "https://tmpfiles.org/api/v1/upload"]);
+  assert.deepEqual(result, {
+    ok: true,
+    url: "https://tmpfiles.org/dl/abc123/fallback.png",
+    source: "temporary",
+  });
+});
+
+test("toPublicUrl falls back to Uguu when x0.at and tmpfiles fail", async () => {
+  const requestedUrls = [];
+
+  const result = await toPublicUrl("data:image/png;base64,aGVsbG8=", { ttl: "12h" }, {
+    fetchImpl: async (url) => {
+      const requestedUrl = String(url);
+      requestedUrls.push(requestedUrl);
+
+      if (requestedUrl === "https://x0.at/") {
+        throw new TypeError("fetch failed");
+      }
+
+      if (requestedUrl === "https://tmpfiles.org/api/v1/upload") {
+        return new Response("service unavailable", { status: 503 });
+      }
+
+      if (requestedUrl === "https://uguu.se/upload") {
+        return new Response(JSON.stringify({
+          success: true,
+          files: [{ url: "https://o.uguu.se/fallback.png" }],
+          errors: [],
+        }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+
+      throw new Error(`unexpected upload URL: ${requestedUrl}`);
+    },
+  });
+
+  assert.deepEqual(requestedUrls, ["https://x0.at/", "https://tmpfiles.org/api/v1/upload", "https://uguu.se/upload"]);
+  assert.deepEqual(result, {
+    ok: true,
+    url: "https://o.uguu.se/fallback.png",
+    source: "temporary",
+  });
+});

@@ -76,7 +76,7 @@ Use this group when Agnes requires a public image URL and your source asset is a
     .command("url")
     .description("Return a public URL for a local file or pass through an existing URL")
     .argument("<file-or-url>", "Local file path or http(s) URL")
-    .option("--ttl <ttl>", "Litterbox TTL (1h, 12h, 24h, 72h)", "1h")
+    .option("--ttl <ttl>", "Temporary upload TTL (1h, 12h, 24h, 72h)", "1h")
     .option("--json", "Output JSON")
     .action(async (input, options) => {
       const result = await client.media.toPublicUrl(input, { ttl: ttlSchema.parse(options.ttl) });

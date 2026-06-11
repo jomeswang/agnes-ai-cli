@@ -9,6 +9,7 @@ import { pollVideo } from "./video/pollVideo.js";
 export { checkAuth } from "./auth/check.js";
 export { toPublicUrl } from "./media/toPublicUrl.js";
 export { LitterboxMediaUrlProvider } from "./media/litterbox.js";
+export { TemporaryMediaUrlProvider, TmpfilesMediaUrlProvider, UguuMediaUrlProvider, X0MediaUrlProvider } from "./media/temporary-upload.js";
 export type {
   AgnesClientConfig,
   AuthCheckResult,

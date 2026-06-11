@@ -60,7 +60,7 @@ export interface AuthCheckResult {
 export interface PublicUrlResult {
   ok: true;
   url: string;
-  source: "passthrough" | "litterbox" | "provider";
+  source: "passthrough" | "litterbox" | "temporary" | "provider";
 }
 
 export type AgnesStatus = "queued" | "in_progress" | "completed" | "failed" | "timed_out";

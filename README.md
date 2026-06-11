@@ -32,6 +32,8 @@ agnes video keyframes --image ./frame-a.png --image ./frame-b.png --prompt "morp
 agnes video poll <task-id>
 ```
 
+Local media inputs are uploaded to a temporary public URL automatically. The default bridge tries x0.at first, then falls back to tmpfiles, Uguu, and Litterbox.
+
 ## JS API
 
 ```js

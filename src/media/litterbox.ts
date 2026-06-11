@@ -16,8 +16,16 @@ const MIME_TYPES: Record<string, string> = {
   ".webm": "video/webm",
 };
 
+type LitterboxMediaUrlProviderOptions = {
+  maxAttempts?: number;
+  retryDelayMs?: number;
+};
+
 export class LitterboxMediaUrlProvider {
-  constructor(private readonly fetchImpl: FetchLike = fetch) {}
+  constructor(
+    private readonly fetchImpl: FetchLike = fetch,
+    private readonly options: LitterboxMediaUrlProviderOptions = {},
+  ) {}
 
   async upload(localPath: string, options: { ttl?: Ttl } = {}): Promise<string> {
     const ttl = options.ttl ?? "1h";
@@ -45,7 +53,10 @@ export class LitterboxMediaUrlProvider {
 
   private async postFormWithRetry(form: FormData): Promise<{ response: Response; text: string }> {
     let lastError: unknown;
-    for (let attempt = 0; attempt <= 2; attempt += 1) {
+    const maxAttempts = this.options.maxAttempts ?? 3;
+    const retryDelayMs = this.options.retryDelayMs ?? 500;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
         const response = await this.fetchImpl(LITTERBOX_ENDPOINT, {
           method: "POST",
@@ -55,12 +66,12 @@ export class LitterboxMediaUrlProvider {
         return { response, text };
       } catch (error) {
         lastError = error;
-        if (attempt === 2) {
+        if (attempt === maxAttempts) {
           throw new AgnesCliError("UPLOAD_FAILED", "Litterbox upload failed before a response was received.", {
             cause: error instanceof Error ? error.message : String(error),
           });
         }
-        await sleep(500);
+        await sleep(retryDelayMs);
       }
     }
 

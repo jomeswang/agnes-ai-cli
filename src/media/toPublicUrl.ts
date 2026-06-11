@@ -2,7 +2,7 @@ import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
-import { LitterboxMediaUrlProvider } from "./litterbox.js";
+import { TemporaryMediaUrlProvider } from "./temporary-upload.js";
 import type { AgnesClientConfig, FetchLike, PublicUrlResult, Ttl } from "../config.js";
 import { resolveConfig } from "../config.js";
 import { AgnesCliError } from "../errors.js";
@@ -29,12 +29,12 @@ export async function toPublicUrl(
   const resolved = resolveConfig(config);
   const provider =
     resolved.mediaProvider ??
-    new LitterboxMediaUrlProvider(resolved.fetchImpl);
+    new TemporaryMediaUrlProvider(resolved.fetchImpl);
   const materialized = await materializeUploadInput(input, resolved.fetchImpl);
 
   try {
     const url = await provider.upload(materialized.path, { ttl: options.ttl ?? resolved.defaultMediaTtl });
-    return { ok: true, url, source: resolved.mediaProvider ? "provider" : "litterbox" };
+    return { ok: true, url, source: resolved.mediaProvider ? "provider" : "temporary" };
   } finally {
     if (materialized.cleanupDir) {
       await rm(materialized.cleanupDir, { recursive: true, force: true });
