@@ -16,7 +16,7 @@ test("pollVideo includes video details for not-found errors", async () => {
     (error) => {
       assert.equal(error.code, "TASK_NOT_FOUND");
       assert.deepEqual(error.details, {
-        videoId: "video_123",
+        id: "video_123",
         status: "failed",
         raw: { error: "missing" },
       });
@@ -48,6 +48,35 @@ test("pollVideo retrieves video results with the recommended video_id endpoint",
   });
 
   assert.equal(requestedUrls[0], "https://apihub.agnes-ai.com/agnesapi?video_id=video_123");
+  assert.equal(result.taskId, "task_123");
+  assert.equal(result.videoId, "video_123");
+  assert.equal(result.videoUrl, "https://example.com/result.mp4");
+});
+
+test("pollVideo keeps task_id inputs on the legacy endpoint for compatibility", async () => {
+  const requestedUrls = [];
+  const fetchImpl = async (url) => {
+    requestedUrls.push(url);
+    return new Response(JSON.stringify({
+      id: "task_123",
+      task_id: "task_123",
+      video_id: "video_123",
+      model: "agnes-video-v2.0",
+      status: "completed",
+      remixed_from_video_id: "https://example.com/result.mp4",
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+
+  const result = await pollVideo("task_123", {}, {
+    apiKey: "test-key",
+    baseUrl: "https://apihub.agnes-ai.com/v1",
+    fetchImpl,
+  });
+
+  assert.equal(requestedUrls[0], "https://apihub.agnes-ai.com/v1/videos/task_123");
   assert.equal(result.taskId, "task_123");
   assert.equal(result.videoId, "video_123");
   assert.equal(result.videoUrl, "https://example.com/result.mp4");

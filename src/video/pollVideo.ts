@@ -10,7 +10,7 @@ export interface PollVideoOptions {
 }
 
 export async function pollVideo(
-  videoId: string,
+  id: string,
   options: PollVideoOptions = {},
   config: AgnesClientConfig = {},
 ): Promise<NormalizedVideoResult> {
@@ -24,10 +24,10 @@ export async function pollVideo(
 
   while (true) {
     if (Date.now() - started > timeoutMs) {
-      throw new AgnesCliError("POLL_TIMEOUT", "Agnes video polling timed out.", { videoId, status: "timed_out" });
+      throw new AgnesCliError("POLL_TIMEOUT", "Agnes video polling timed out.", { id, status: "timed_out" });
     }
 
-    const { response, raw } = await requestJson(resolved.fetchImpl, buildVideoPollUrl(resolved.baseUrl, videoId), {
+    const { response, raw } = await requestJson(resolved.fetchImpl, buildVideoPollUrl(resolved.baseUrl, id), {
       headers: {
         Authorization: `Bearer ${resolved.apiKey}`,
       },
@@ -35,13 +35,13 @@ export async function pollVideo(
       networkMessage: "Agnes video poll request failed before a response was received.",
     });
     if (response.status === 404) {
-      throw new AgnesCliError("TASK_NOT_FOUND", "Agnes video task was not found.", { videoId, status: "failed", raw });
+      throw new AgnesCliError("TASK_NOT_FOUND", "Agnes video task was not found.", { id, status: "failed", raw });
     }
     if (response.status === 503) {
-      throw new AgnesCliError("SERVICE_BUSY", "Agnes video service is busy.", { videoId, status: "queued", raw });
+      throw new AgnesCliError("SERVICE_BUSY", "Agnes video service is busy.", { id, status: "queued", raw });
     }
     if (!response.ok) {
-      throw new AgnesCliError("AGNES_REQUEST_FAILED", `Agnes video poll failed with HTTP ${response.status}.`, { videoId, status: "failed", raw });
+      throw new AgnesCliError("AGNES_REQUEST_FAILED", `Agnes video poll failed with HTTP ${response.status}.`, { id, status: "failed", raw });
     }
 
     const result = normalizeVideoResult(raw);
@@ -80,9 +80,12 @@ export function normalizeVideoResult(raw: unknown): NormalizedVideoResult {
   };
 }
 
-function buildVideoPollUrl(baseUrl: string, videoId: string): string {
+function buildVideoPollUrl(baseUrl: string, id: string): string {
+  if (id.startsWith("task_")) {
+    return `${baseUrl.replace(/\/$/, "")}/videos/${encodeURIComponent(id)}`;
+  }
   const url = new URL("/agnesapi", new URL(baseUrl));
-  url.searchParams.set("video_id", videoId);
+  url.searchParams.set("video_id", id);
   return url.toString();
 }
 
