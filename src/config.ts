@@ -68,6 +68,7 @@ export type AgnesStatus = "queued" | "in_progress" | "completed" | "failed" | "t
 export interface NormalizedVideoTask {
   ok: true;
   taskId: string;
+  videoId?: string;
   status: AgnesStatus;
   rawStatus?: string;
   model: string;
@@ -77,6 +78,7 @@ export interface NormalizedVideoTask {
 export interface NormalizedVideoResult {
   ok: true;
   taskId: string;
+  videoId?: string;
   status: AgnesStatus;
   rawStatus?: string;
   model: string;

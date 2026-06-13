@@ -29,10 +29,11 @@ agnes video text2video --prompt "a cinematic drone shot of waves at dusk"
 agnes video img2video --image ./frame.png --prompt "animate subtle rain and drifting fog"
 agnes video multivideo --image ./frame-a.png --image ./frame-b.png --prompt "blend these references into one motion concept"
 agnes video keyframes --image ./frame-a.png --image ./frame-b.png --prompt "morph between the two scenes"
-agnes video poll <task-id>
+agnes video poll <video-id>
 ```
 
 Local media inputs are uploaded to a temporary public URL automatically. The default bridge tries x0.at first, then falls back to tmpfiles, Uguu, and Litterbox.
+Video creation is asynchronous. Create commands print both `taskId` and `videoId` when Agnes returns them; use `videoId` with `agnes video poll`.
 
 ## JS API
 

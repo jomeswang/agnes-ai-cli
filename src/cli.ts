@@ -231,9 +231,9 @@ Examples:
   agnes video text2video --prompt "A cinematic beach scene at sunset"
   agnes video img2video --image ./frame.png --prompt "Add gentle wind and a soft push-in"
   agnes video keyframes --image ./a.png --image ./b.png --prompt "Transition between the frames"
-  agnes video poll task_123
+  agnes video poll video_123
 
-Use this group for Agnes video task creation and polling. Video creation is asynchronous; poll returns the final result.
+Use this group for Agnes video task creation and polling. Video creation is asynchronous; poll uses the recommended video_id endpoint and returns the final result.
 `);
   buildVideoGenerateCommand(video, "text2video", "Generate a video from text", async (client, options) =>
     client.video.generate({
@@ -295,19 +295,19 @@ Use this group for Agnes video task creation and polling. Video creation is asyn
   video
     .command("poll")
     .description("Poll an Agnes video task until it finishes")
-    .argument("<task-id>", "Task id returned by Agnes video creation")
-    .option("--interval <seconds>", "Polling interval seconds", parseInteger, 3)
+    .argument("<video-id>", "Video id returned by Agnes video creation")
+    .option("--interval <seconds>", "Polling interval seconds", parseInteger, 5)
     .option("--timeout <seconds>", "Polling timeout seconds", parseInteger, 600)
     .option("--json", "Output JSON")
     .addHelpText("after", `
 Example:
-  agnes video poll task_123 --interval 3 --timeout 600
+  agnes video poll video_123 --interval 5 --timeout 600
 
 Request shape:
-  Polls Agnes /videos/{task_id} until the task completes, fails, or times out. Use this after any asynchronous video creation command.
+  Polls Agnes /agnesapi?video_id={video_id} until the task completes, fails, or times out. Use this after any asynchronous video creation command.
 `)
-    .action(async (taskId, options) => {
-      const result = await client.video.poll(taskId, {
+    .action(async (videoId, options) => {
+      const result = await client.video.poll(videoId, {
         intervalSeconds: options.interval,
         timeoutSeconds: options.timeout,
       });
@@ -365,9 +365,10 @@ function buildVideoGenerateCommand(
       printJson(result);
       return;
     }
-    const task = result as { taskId: string; status: string };
+    const task = result as { taskId: string; videoId?: string; status: string };
     printLines([
       `taskId: ${task.taskId}`,
+      task.videoId ? `videoId: ${task.videoId}` : undefined,
       `status: ${task.status}`,
     ]);
   });
