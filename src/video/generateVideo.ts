@@ -50,10 +50,12 @@ async function resolveMediaInputs(inputs: string[], ttl: string | undefined, con
 export function normalizeVideoTask(raw: unknown): NormalizedVideoTask {
   const record = ensureRecord(raw);
   const taskId = extractTaskId(record);
+  const videoId = extractVideoId(record);
   const rawStatus = typeof record.status === "string" ? record.status : "queued";
   return {
     ok: true,
     taskId,
+    videoId,
     status: normalizeStatus(rawStatus),
     rawStatus,
     model: typeof record.model === "string" ? record.model : "agnes-video-v2.0",
@@ -78,6 +80,12 @@ export function extractTaskId(record: Record<string, unknown>): string {
     throw new AgnesCliError("TASK_ID_MISSING", "Agnes video response did not include task_id or id.", record);
   }
   return taskId;
+}
+
+export function extractVideoId(record: Record<string, unknown>): string | undefined {
+  if (typeof record.video_id === "string") return record.video_id;
+  if (typeof record.id === "string" && record.id.startsWith("video_")) return record.id;
+  return undefined;
 }
 
 export function normalizeStatus(rawStatus: string): "queued" | "in_progress" | "completed" | "failed" {

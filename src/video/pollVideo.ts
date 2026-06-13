@@ -2,7 +2,7 @@ import type { AgnesClientConfig, AgnesStatus, NormalizedVideoResult } from "../c
 import { resolveConfig } from "../config.js";
 import { AgnesCliError } from "../errors.js";
 import { requestJson } from "../http/requestJson.js";
-import { extractTaskId, normalizeStatus } from "./generateVideo.js";
+import { extractTaskId, extractVideoId, normalizeStatus } from "./generateVideo.js";
 
 export interface PollVideoOptions {
   intervalSeconds?: number;
@@ -10,7 +10,7 @@ export interface PollVideoOptions {
 }
 
 export async function pollVideo(
-  taskId: string,
+  id: string,
   options: PollVideoOptions = {},
   config: AgnesClientConfig = {},
 ): Promise<NormalizedVideoResult> {
@@ -18,16 +18,16 @@ export async function pollVideo(
   if (!resolved.apiKey) {
     throw new AgnesCliError("AUTH_MISSING", "AGNES_API_KEY is required for Agnes requests.");
   }
-  const intervalMs = (options.intervalSeconds ?? 3) * 1000;
+  const intervalMs = (options.intervalSeconds ?? 5) * 1000;
   const timeoutMs = (options.timeoutSeconds ?? 600) * 1000;
   const started = Date.now();
 
   while (true) {
     if (Date.now() - started > timeoutMs) {
-      throw new AgnesCliError("POLL_TIMEOUT", "Agnes video polling timed out.", { taskId, status: "timed_out" });
+      throw new AgnesCliError("POLL_TIMEOUT", "Agnes video polling timed out.", { id, status: "timed_out" });
     }
 
-    const { response, raw } = await requestJson(resolved.fetchImpl, `${resolved.baseUrl}/videos/${taskId}`, {
+    const { response, raw } = await requestJson(resolved.fetchImpl, buildVideoPollUrl(resolved.baseUrl, id), {
       headers: {
         Authorization: `Bearer ${resolved.apiKey}`,
       },
@@ -35,13 +35,13 @@ export async function pollVideo(
       networkMessage: "Agnes video poll request failed before a response was received.",
     });
     if (response.status === 404) {
-      throw new AgnesCliError("TASK_NOT_FOUND", "Agnes video task was not found.", { taskId, status: "failed", raw });
+      throw new AgnesCliError("TASK_NOT_FOUND", "Agnes video task was not found.", { id, status: "failed", raw });
     }
     if (response.status === 503) {
-      throw new AgnesCliError("SERVICE_BUSY", "Agnes video service is busy.", { taskId, status: "queued", raw });
+      throw new AgnesCliError("SERVICE_BUSY", "Agnes video service is busy.", { id, status: "queued", raw });
     }
     if (!response.ok) {
-      throw new AgnesCliError("AGNES_REQUEST_FAILED", `Agnes video poll failed with HTTP ${response.status}.`, { taskId, status: "failed", raw });
+      throw new AgnesCliError("AGNES_REQUEST_FAILED", `Agnes video poll failed with HTTP ${response.status}.`, { id, status: "failed", raw });
     }
 
     const result = normalizeVideoResult(raw);
@@ -59,6 +59,7 @@ export function normalizeVideoResult(raw: unknown): NormalizedVideoResult {
   }
   const record = raw as Record<string, unknown>;
   const taskId = extractTaskId(record);
+  const videoId = extractVideoId(record);
   const rawStatus = typeof record.status === "string" ? record.status : "queued";
   const status = normalizeStatus(rawStatus);
   const videoUrl = extractVideoUrl(record);
@@ -68,6 +69,7 @@ export function normalizeVideoResult(raw: unknown): NormalizedVideoResult {
   return {
     ok: true,
     taskId,
+    videoId,
     status: status as AgnesStatus,
     rawStatus,
     model: typeof record.model === "string" ? record.model : "agnes-video-v2.0",
@@ -76,6 +78,15 @@ export function normalizeVideoResult(raw: unknown): NormalizedVideoResult {
     size: typeof record.size === "string" ? record.size : undefined,
     raw,
   };
+}
+
+function buildVideoPollUrl(baseUrl: string, id: string): string {
+  if (id.startsWith("task_")) {
+    return `${baseUrl.replace(/\/$/, "")}/videos/${encodeURIComponent(id)}`;
+  }
+  const url = new URL("/agnesapi", new URL(baseUrl));
+  url.searchParams.set("video_id", id);
+  return url.toString();
 }
 
 function extractVideoUrl(record: Record<string, unknown>): string | undefined {

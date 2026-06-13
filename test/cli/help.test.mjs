@@ -43,7 +43,7 @@ test("video poll help includes example and request-shape guidance", () => {
   });
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Example:/);
-  assert.match(result.stdout, /\/videos\/\{task_id\}/);
+  assert.match(result.stdout, /\/agnesapi\?video_id=\{video_id\}/);
   assert.match(result.stdout, /asynchronous video creation command/);
 });
 

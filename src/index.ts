@@ -40,7 +40,7 @@ export function createAgnesClient(config: AgnesClientConfig = {}) {
     },
     video: {
       generate: (options: import("./video/normalizeVideoRequest.js").VideoGenerateOptions) => generateVideo(options, config),
-      poll: (taskId: string, options?: import("./video/pollVideo.js").PollVideoOptions) => pollVideo(taskId, options, config),
+      poll: (id: string, options?: import("./video/pollVideo.js").PollVideoOptions) => pollVideo(id, options, config),
     },
   };
 }
