@@ -72,7 +72,7 @@ test("toPublicUrl still passes public http URLs through", async () => {
   });
 });
 
-test("toPublicUrl tries x0.at first for temporary uploads", async () => {
+test("toPublicUrl tries Litterbox first for temporary uploads", async () => {
   const requestedUrls = [];
 
   const result = await toPublicUrl("data:image/png;base64,aGVsbG8=", { ttl: "1h" }, {
@@ -80,23 +80,23 @@ test("toPublicUrl tries x0.at first for temporary uploads", async () => {
       const requestedUrl = String(url);
       requestedUrls.push(requestedUrl);
 
-      if (requestedUrl === "https://x0.at/") {
-        return new Response("https://x0.at/fast.png\n", { status: 200 });
+      if (requestedUrl === "https://litterbox.catbox.moe/resources/internals/api.php") {
+        return new Response("https://litter.catbox.moe/fast.png\n", { status: 200 });
       }
 
       throw new Error(`unexpected upload URL: ${requestedUrl}`);
     },
   });
 
-  assert.deepEqual(requestedUrls, ["https://x0.at/"]);
+  assert.deepEqual(requestedUrls, ["https://litterbox.catbox.moe/resources/internals/api.php"]);
   assert.deepEqual(result, {
     ok: true,
-    url: "https://x0.at/fast.png",
+    url: "https://litter.catbox.moe/fast.png",
     source: "temporary",
   });
 });
 
-test("toPublicUrl falls back to tmpfiles direct links when x0.at fails", async () => {
+test("toPublicUrl falls back to tmpfiles direct links when Litterbox fails", async () => {
   const requestedUrls = [];
 
   const result = await toPublicUrl("data:image/png;base64,aGVsbG8=", { ttl: "1h" }, {
@@ -104,7 +104,7 @@ test("toPublicUrl falls back to tmpfiles direct links when x0.at fails", async (
       const requestedUrl = String(url);
       requestedUrls.push(requestedUrl);
 
-      if (requestedUrl === "https://x0.at/") {
+      if (requestedUrl === "https://litterbox.catbox.moe/resources/internals/api.php") {
         throw new TypeError("fetch failed");
       }
 
@@ -122,7 +122,7 @@ test("toPublicUrl falls back to tmpfiles direct links when x0.at fails", async (
     },
   });
 
-  assert.deepEqual(requestedUrls, ["https://x0.at/", "https://tmpfiles.org/api/v1/upload"]);
+  assert.deepEqual(requestedUrls, ["https://litterbox.catbox.moe/resources/internals/api.php", "https://tmpfiles.org/api/v1/upload"]);
   assert.deepEqual(result, {
     ok: true,
     url: "https://tmpfiles.org/dl/abc123/fallback.png",
@@ -130,7 +130,38 @@ test("toPublicUrl falls back to tmpfiles direct links when x0.at fails", async (
   });
 });
 
-test("toPublicUrl falls back to Uguu when x0.at and tmpfiles fail", async () => {
+test("toPublicUrl can prefer tmpfiles for temporary uploads", async () => {
+  const requestedUrls = [];
+
+  const result = await toPublicUrl("data:image/png;base64,aGVsbG8=", { ttl: "1h" }, {
+    temporaryMediaProviderOrder: ["tmpfiles", "litterbox", "uguu", "x0"],
+    fetchImpl: async (url) => {
+      const requestedUrl = String(url);
+      requestedUrls.push(requestedUrl);
+
+      if (requestedUrl === "https://tmpfiles.org/api/v1/upload") {
+        return new Response(JSON.stringify({
+          status: "success",
+          data: { url: "https://tmpfiles.org/preferred/tmp-first.png" },
+        }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+
+      throw new Error(`unexpected upload URL: ${requestedUrl}`);
+    },
+  });
+
+  assert.deepEqual(requestedUrls, ["https://tmpfiles.org/api/v1/upload"]);
+  assert.deepEqual(result, {
+    ok: true,
+    url: "https://tmpfiles.org/dl/preferred/tmp-first.png",
+    source: "temporary",
+  });
+});
+
+test("toPublicUrl falls back to Uguu when Litterbox and tmpfiles fail", async () => {
   const requestedUrls = [];
 
   const result = await toPublicUrl("data:image/png;base64,aGVsbG8=", { ttl: "12h" }, {
@@ -138,7 +169,7 @@ test("toPublicUrl falls back to Uguu when x0.at and tmpfiles fail", async () => 
       const requestedUrl = String(url);
       requestedUrls.push(requestedUrl);
 
-      if (requestedUrl === "https://x0.at/") {
+      if (requestedUrl === "https://litterbox.catbox.moe/resources/internals/api.php") {
         throw new TypeError("fetch failed");
       }
 
@@ -161,7 +192,11 @@ test("toPublicUrl falls back to Uguu when x0.at and tmpfiles fail", async () => 
     },
   });
 
-  assert.deepEqual(requestedUrls, ["https://x0.at/", "https://tmpfiles.org/api/v1/upload", "https://uguu.se/upload"]);
+  assert.deepEqual(requestedUrls, [
+    "https://litterbox.catbox.moe/resources/internals/api.php",
+    "https://tmpfiles.org/api/v1/upload",
+    "https://uguu.se/upload",
+  ]);
   assert.deepEqual(result, {
     ok: true,
     url: "https://o.uguu.se/fallback.png",

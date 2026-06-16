@@ -1,6 +1,7 @@
 import { AgnesCliError } from "./errors.js";
 
 export type Ttl = "1h" | "12h" | "24h" | "72h";
+export type TemporaryMediaProviderName = "litterbox" | "tmpfiles" | "uguu" | "x0";
 
 export type FetchLike = typeof fetch;
 
@@ -9,6 +10,7 @@ export interface AgnesClientConfig {
   baseUrl?: string;
   fetchImpl?: FetchLike;
   defaultMediaTtl?: Ttl;
+  temporaryMediaProviderOrder?: readonly TemporaryMediaProviderName[];
   mediaProvider?: MediaUrlProvider;
   env?: NodeJS.ProcessEnv;
 }
@@ -22,6 +24,7 @@ export interface ResolvedConfig {
   baseUrl: string;
   fetchImpl: FetchLike;
   defaultMediaTtl: Ttl;
+  temporaryMediaProviderOrder?: readonly TemporaryMediaProviderName[];
   mediaProvider?: MediaUrlProvider;
   env: NodeJS.ProcessEnv;
 }
@@ -46,6 +49,7 @@ export function resolveConfig(config: AgnesClientConfig = {}): ResolvedConfig {
     baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
     fetchImpl: config.fetchImpl ?? fetch,
     defaultMediaTtl: config.defaultMediaTtl ?? DEFAULT_MEDIA_TTL,
+    temporaryMediaProviderOrder: config.temporaryMediaProviderOrder,
     mediaProvider: config.mediaProvider,
     env: config.env ?? process.env,
   };

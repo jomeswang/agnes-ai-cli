@@ -32,7 +32,7 @@ agnes video keyframes --image ./frame-a.png --image ./frame-b.png --prompt "morp
 agnes video poll <video-or-task-id>
 ```
 
-Local media inputs are uploaded to a temporary public URL automatically. The default bridge tries x0.at first, then falls back to tmpfiles, Uguu, and Litterbox.
+Local media inputs are uploaded to a temporary public URL automatically. The default bridge tries Litterbox first, then falls back to tmpfiles, Uguu, and x0.at.
 Video creation is asynchronous. Create commands print both `taskId` and `videoId` when Agnes returns them; use `videoId` with `agnes video poll`. Passing an older `taskId` still works through the legacy polling endpoint.
 
 ## JS API
@@ -48,4 +48,13 @@ const image = await agnes.image.generate({
 });
 
 console.log(image.url);
+```
+
+You can override the temporary upload provider order when a specific host works better for your Agnes workflow:
+
+```js
+const agnes = createAgnesClient({
+  apiKey: process.env.AGNES_API_KEY,
+  temporaryMediaProviderOrder: ["tmpfiles", "litterbox", "uguu", "x0"]
+});
 ```

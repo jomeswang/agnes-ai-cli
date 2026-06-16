@@ -1,6 +1,6 @@
 {
   "name": "agnes-ai-cli",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "CLI and JS API for Agnes text, image, and video workflows.",
   "type": "module",
   "bin": {

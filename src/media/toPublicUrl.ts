@@ -29,7 +29,9 @@ export async function toPublicUrl(
   const resolved = resolveConfig(config);
   const provider =
     resolved.mediaProvider ??
-    new TemporaryMediaUrlProvider(resolved.fetchImpl);
+    new TemporaryMediaUrlProvider(resolved.fetchImpl, {
+      providerOrder: resolved.temporaryMediaProviderOrder,
+    });
   const materialized = await materializeUploadInput(input, resolved.fetchImpl);
 
   try {

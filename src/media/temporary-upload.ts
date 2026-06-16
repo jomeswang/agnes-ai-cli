@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import { basename, extname } from "node:path";
-import type { FetchLike, MediaUrlProvider, Ttl } from "../config.js";
+import type { FetchLike, MediaUrlProvider, TemporaryMediaProviderName, Ttl } from "../config.js";
 import { AgnesCliError } from "../errors.js";
 import { LitterboxMediaUrlProvider } from "./litterbox.js";
 
@@ -26,16 +26,33 @@ const TTL_SECONDS: Record<Ttl, string> = {
   "72h": "259200",
 };
 
+const PROVIDER_LABELS: Record<TemporaryMediaProviderName, string> = {
+  litterbox: "Litterbox",
+  tmpfiles: "tmpfiles",
+  uguu: "Uguu",
+  x0: "x0.at",
+};
+
+const DEFAULT_PROVIDER_ORDER: readonly TemporaryMediaProviderName[] = ["litterbox", "tmpfiles", "uguu", "x0"];
+
+type TemporaryMediaUrlProviderOptions = {
+  providerOrder?: readonly TemporaryMediaProviderName[];
+};
+
 export class TemporaryMediaUrlProvider implements MediaUrlProvider {
   private readonly providers: readonly { name: string; provider: MediaUrlProvider }[];
 
-  constructor(fetchImpl: FetchLike = fetch) {
-    this.providers = [
-      { name: "x0.at", provider: new X0MediaUrlProvider(fetchImpl) },
-      { name: "tmpfiles", provider: new TmpfilesMediaUrlProvider(fetchImpl) },
-      { name: "Uguu", provider: new UguuMediaUrlProvider(fetchImpl) },
-      { name: "Litterbox", provider: new LitterboxMediaUrlProvider(fetchImpl, { maxAttempts: 1 }) },
-    ];
+  constructor(fetchImpl: FetchLike = fetch, options: TemporaryMediaUrlProviderOptions = {}) {
+    const providerByName: Record<TemporaryMediaProviderName, MediaUrlProvider> = {
+      litterbox: new LitterboxMediaUrlProvider(fetchImpl, { maxAttempts: 1 }),
+      tmpfiles: new TmpfilesMediaUrlProvider(fetchImpl),
+      uguu: new UguuMediaUrlProvider(fetchImpl),
+      x0: new X0MediaUrlProvider(fetchImpl),
+    };
+    this.providers = normalizeProviderOrder(options.providerOrder).map((name) => ({
+      name: PROVIDER_LABELS[name],
+      provider: providerByName[name],
+    }));
   }
 
   async upload(localPath: string, options: { ttl?: Ttl } = {}): Promise<string> {
@@ -49,10 +66,29 @@ export class TemporaryMediaUrlProvider implements MediaUrlProvider {
       }
     }
 
-    throw new AgnesCliError("UPLOAD_FAILED", "Temporary upload failed after trying x0.at, tmpfiles, Uguu, and Litterbox.", {
+    const providerNames = this.providers.map((provider) => provider.name).join(", ");
+    throw new AgnesCliError("UPLOAD_FAILED", `Temporary upload failed after trying ${providerNames}.`, {
       failures,
     });
   }
+}
+
+function normalizeProviderOrder(providerOrder: readonly TemporaryMediaProviderName[] | undefined): readonly TemporaryMediaProviderName[] {
+  const order = providerOrder?.length ? providerOrder : DEFAULT_PROVIDER_ORDER;
+  const seen = new Set<TemporaryMediaProviderName>();
+  const normalized: TemporaryMediaProviderName[] = [];
+
+  for (const provider of order) {
+    if (!(provider in PROVIDER_LABELS)) {
+      throw new AgnesCliError("INPUT_INVALID", `Unknown temporary media provider: ${provider}`);
+    }
+    if (!seen.has(provider)) {
+      seen.add(provider);
+      normalized.push(provider);
+    }
+  }
+
+  return normalized;
 }
 
 export class X0MediaUrlProvider implements MediaUrlProvider {

@@ -17,6 +17,7 @@ export type {
   ImageGenerationResult,
   NormalizedVideoTask,
   NormalizedVideoResult,
+  TemporaryMediaProviderName,
   Ttl,
 } from "./config.js";
 export type { ImageGenerateOptions } from "./image/normalizeImageRequest.js";
